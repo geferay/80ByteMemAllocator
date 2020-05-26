@@ -12,13 +12,17 @@
 /*Include files*/
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 /*Global constants*/
 #define INPUT_MAX 40
+/*We got to have a version that's +1, for the null terminator.*/
+#define INPUT_LEN 41
+#define MEMORY_SIZE 80
 
 /*Function Prototypes*/
-void compactMemory(char *input);
-void freeMemory(input, program);
+void compactMemory(char *memoryPool);
+void freeMemory(char *memoryPool, char program);
 
 
 /*Main function*/
@@ -27,8 +31,14 @@ int main(){
 	printf("Welcome to the 80ByteMemAllocator Demo program, an assignment for CSS 430 (Operating Systems) at UWB.\n");
 	printf("You are here, I guess.\n");
 	
-	char memoryPool[81];
-	memoryPool[80] = '\0'; /*set the 81st character (81-1) to the null character, because it's the end of the string*/
+	const char *memoryTemplate = "AAAAAAAAAA..........BBBBBBBBBBFFFFFFFFFFFFFFFGGG..CCCCCH..............DDDDD.....";
+	char *memoryPool;
+	memoryPool = (char*)malloc(INPUT_LEN * sizeof(char));
+	memoryPool[INPUT_MAX] = '\0';
+	for(int i = 0; memoryTemplate[i]; ++i) memoryPool[i] = memoryTemplate[i];
+	
+	
+	//memoryPool[80] = '\0'; /*set the 81st character (81-1) to the null character, because it's the end of the string*/
 	
 	/*main program loop code*/
 	int notDone = 1; /*We're never done, unless somebody implements an exit command or hits Ctr-C*/
@@ -36,7 +46,7 @@ int main(){
 		/*Get ready for input. We need to do a command prompt with switch() statement.*/
 		size_t inputMax   = INPUT_MAX;
 		size_t charInput  =  0;        /*getline() tells us the input size*/
-		char   input[INPUT_MAX + 1];   /*Way too much space. The likely max needed is 9. The +1 is for '\0' at end of string.*/
+		char   input[INPUT_LEN];   /*Way too much space. The likely max needed is 9.*/
 		char   command    = '\0';
 		char   program    = '\0';
 		int    amount     =    0;
@@ -47,14 +57,17 @@ int main(){
 		
 		/*getInput*/
 		printf("Give a command: ");
-		charInput = getline(&input, &inputMax, stdin);
+		char *in = input; /*ugly hack to get getline() to be happy*/
+		charInput = getline(&in, &inputMax, stdin);
+		if(charInput <= 1) continue; /*nothing to do here, just repeat the loop*/
 		/*remove trailing newline*/
 		if(input[charInput - 1] == 10) input[charInput - 1] = '\0';
 		/*skip leading spaces*/
+		while(input[curr] == ' ') ++curr;
 		/*assign command*/
 		command = input[curr++];
-		/*error on extra non-space*/
 		
+		/*parsing section===============================================================================*/
 		if(command == 'R' || command == 'r'){
 			command = 'R';
 			/*error on extra non-space characters*/
@@ -64,21 +77,27 @@ int main(){
 				/*read the commands from a file*/
 			}
 		}
-		if(command == 'S' || command == 's'){
+		else if(command == 'S' || command == 's'){
 			command = 'S';
 		}
-		if(command == 'C' || command == 'c'){
+		else if(command == 'C' || command == 'c'){
 			command = 'C';
 			/*compact the memory*/
 		}
-		if(command == 'F' || command == 'f'){
+		else if(command == 'F' || command == 'f'){
 			command = 'F';
 			/*error on extra non-space characters*/
-			/*assign program*/
-			program = input[curr];
-			/*free memory for program*/
+			if(input[curr] != ' ') errorFound = 1;
+			if(!errorFound){
+				/*skip spaces*/
+				while(input[curr] == ' ') ++curr;
+				/*assign program*/
+				program = input[curr];
+				/*make uppercase*/
+				if(program > 90) program -= 32;
+			}
 		}
-		if(command == 'A' || command == 'a'){
+		else if(command == 'A' || command == 'a'){
 			command = 'A';
 			/*assign program*/
 			program = input[curr];
@@ -96,7 +115,10 @@ int main(){
 			errorFound = 1; /*There must have been an error.*/
 		}
 		
-		if(errorFound){
+		
+		printf("Command is: %c\n", command);
+		
+		if(errorFound == 1){
 			/*show error*/
 			printf("We're dearly sorry, but your command was not recognized.\n");
 			printf("The unrecognized command was: %s\n", input);
@@ -116,11 +138,11 @@ int main(){
 				} break;
 				case 'C':{
 					/*compact the memory*/
-					compactMemory(input);
+					compactMemory((char*)memoryPool);
 				} break;
 				case 'F':{
 					/*compact the memory*/
-					freeMemory(input, program);
+					freeMemory((char*)memoryPool, program);
 				} break;
 				case 'A':{
 					/*setup reading from the file*/
@@ -133,21 +155,36 @@ int main(){
 			}
 		}
 	}
+	
+	if(memoryPool){
+		free(memoryPool);
+		memoryPool = NULL;
+	}
 	return 0; /*Every day's a good day! :-) */
 }
 
 
 
 /*function to compact the memory*/
-void compactMemory(char *input){
+void compactMemory(char *memoryPool){
+	printf("compacting memory\n");
 	/*put code here to compact the memory*/
+	int availabeSpace = 0;
+	for(int i = 0; memoryPool[i]; ++i){
+		if(memoryPool[i] != '.'){
+			memoryPool[availabeSpace] = memoryPool[i];
+			++availabeSpace;
+		}
+	}
+	while(availabeSpace < MEMORY_SIZE) memoryPool[availabeSpace++] = '.';
 	/*return nothing;*/
 }
 
 /*function to free the memory for a program*/
-void freeMemory(char *input, char program){
-	for(int i = 0; i < INPUT_MAX && inpout[i] != '\0'; ++i){
-		if(input[i] == program) input[i] = '.';
+void freeMemory(char *memoryPool, char program){
+	printf("Freeing memory for program %c\n", program);
+	for(int i = 0; memoryPool[i]; ++i){
+		if(memoryPool[i] == program) memoryPool[i] = '.';
 	}
 	/*return nothing;*/
 }
