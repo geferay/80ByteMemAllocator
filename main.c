@@ -129,6 +129,31 @@ void fileRunner(dataStruct * theData, char * memoryPool, char * scriptFile){
         if(DEBUG_LEVEL >= 2) printf("ENTERING executionFunction(). theData->input = %s\n", theData->input);
         executionFunction(theData, memoryPool, theData->input);
     }
+	//if(!feof(in)){
+		int skip = 0;
+		
+        theData->charInput  =  0;        /*we will store the input length*/
+        theData->command    = '\0';
+        theData->program    = '\0';
+        theData->amount     =    0;
+        theData->algorithm  = '\0';
+        theData->parsed     = NULL;
+        theData->curr       = 0;         /*current position in input string*/
+        theData->errorFound = 0;
+		
+		char *inp = theData->input; /*ugly hack to get getline() to be happy*/
+		theData->charInput = getline(&inp, &theData->inputMax, in);
+        
+        //for(int i = 0; theData->input[i]; ++i) ++theData->charInput;
+        if(theData->charInput <= 1) skip = 1; /*nothing to do here, just repeat the loop*/
+		if(!skip){
+			if(DEBUG_LEVEL >= 2) printf("read line: %s\n", theData->input);
+			
+			
+			if(DEBUG_LEVEL >= 2) printf("ENTERING executionFunction(). theData->input = %s\n", theData->input);
+			executionFunction(theData, memoryPool, theData->input);
+		}
+	//}
     
     fclose(in);
 }
